@@ -1,0 +1,6 @@
+# Python dependencies for ai-pop-culture-news
+# Add your Python packages here
+# Example:
+# requests>=2.28.0
+# fastapi>=0.100.0
+# uvicorn>=0.20.0
