@@ -3,20 +3,37 @@
   "version": "1.0.0",
   "description": "AI-powered pop culture news application",
   "type": "module",
-  "main": "dist/index.js",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node --esm src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "pnpm -r format",
+    "start:worker": "pnpm --filter @ai-pop-culture-news/worker start",
+    "dev:worker": "pnpm --filter @ai-pop-culture-news/worker dev"
   },
-  "keywords": ["ai", "pop-culture", "news"],
-  "author": "",
+  "keywords": [
+    "ai",
+    "pop-culture",
+    "news",
+    "automation",
+    "wordpress"
+  ],
+  "author": "AI Culture News Team",
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
   "devDependencies": {
-    "@types/node": "^24.3.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.0"
   }
 }
