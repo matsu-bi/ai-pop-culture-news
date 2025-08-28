@@ -18,23 +18,30 @@ class RSSToHTMLGenerator {
   private parser: Parser;
   private openai: OpenAI;
   private feedUrl: string;
+  private model: string;
+  private baseURL: string;
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required');
-    }
-
-    this.openai = new OpenAI({ apiKey });
+    this.baseURL = process.env.BASE_URL || "http://localhost:11434/v1";
+    this.model = process.env.MODEL || "llama3.1:8b";
+    
+    this.openai = new OpenAI({ 
+      apiKey: "local-only", 
+      baseURL: this.baseURL 
+    });
     this.parser = new Parser();
     this.feedUrl = process.env.FEED_URL || 'https://techcrunch.com/category/artificial-intelligence/feed/';
     
     console.log(`🚀 Starting RSS to HTML generator`);
     console.log(`📡 Feed URL: ${this.feedUrl}`);
+    console.log(`🤖 Using local model: ${this.model} @ ${this.baseURL}`);
   }
 
   async run(): Promise<void> {
     try {
+      console.log('\n🔍 Step 0: Checking Ollama connection...');
+      await this.checkOllamaHealth();
+      
       console.log('\n📥 Step 1: Fetching RSS feed...');
       const latestArticle = await this.fetchLatestArticle();
       
@@ -51,6 +58,41 @@ class RSSToHTMLGenerator {
     } catch (error) {
       console.error('\n❌ Error:', error instanceof Error ? error.message : error);
       process.exit(1);
+    }
+  }
+
+  private async checkOllamaHealth(): Promise<void> {
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const modelsUrl = `${this.baseURL.replace('/v1', '')}/api/tags`;
+      
+      console.log(`   🔗 Checking connection to ${this.baseURL}...`);
+      const response = await fetch(modelsUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json() as { models: Array<{ name: string }> };
+      const availableModels = data.models?.map(m => m.name) || [];
+      
+      console.log(`   ✅ Connected to Ollama (${availableModels.length} models available)`);
+      
+      if (!availableModels.some(name => name.startsWith(this.model.split(':')[0]))) {
+        console.error(`\n❌ Model "${this.model}" is not available.`);
+        console.error(`Available models: ${availableModels.join(', ')}`);
+        console.error(`\n💡 To install the model, run: ollama pull ${this.model}`);
+        process.exit(1);
+      }
+      
+      console.log(`   ✅ Model "${this.model}" is available`);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
+        console.error(`\n❌ Cannot connect to Ollama server at ${this.baseURL}`);
+        console.error(`💡 Make sure Ollama is running: ollama serve`);
+        process.exit(1);
+      }
+      throw error;
     }
   }
 
@@ -115,21 +157,56 @@ class RSSToHTMLGenerator {
 }`;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 1000
-      });
+      let response;
+      try {
+        console.log(`   🤖 Attempting JSON mode with ${this.model}...`);
+        response = await this.openai.chat.completions.create({
+          model: this.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.3,
+          max_tokens: 1000,
+          response_format: { type: "json_object" }
+        });
+      } catch (jsonError) {
+        console.log(`   ⚠️  JSON mode not supported, falling back to regular mode...`);
+        response = await this.openai.chat.completions.create({
+          model: this.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.3,
+          max_tokens: 1000
+        });
+      }
 
       const result = response.choices[0]?.message?.content;
       if (!result) {
-        throw new Error('No response from OpenAI');
+        throw new Error('No response from local model');
       }
 
       console.log(`   🤖 Generated summary (${result.length} chars)`);
       
-      const parsed = JSON.parse(result);
+      let parsed;
+      try {
+        parsed = JSON.parse(result);
+      } catch (parseError) {
+        console.log(`   ⚠️  Direct JSON parse failed, extracting JSON block...`);
+        const jsonMatch = result.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}(?=[^{}]*$)/);
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[0]);
+          } catch (extractError) {
+            throw new Error(`Failed to parse JSON from response: ${result.substring(0, 200)}...`);
+          }
+        } else {
+          throw new Error(`No JSON block found in response: ${result.substring(0, 200)}...`);
+        }
+      }
+      
+      if (!parsed.lead_ja || typeof parsed.lead_ja !== 'string') {
+        throw new Error('Missing or invalid lead_ja field in response');
+      }
+      if (!parsed.facts || !Array.isArray(parsed.facts) || parsed.facts.length === 0) {
+        throw new Error('Missing or invalid facts field in response');
+      }
       
       return {
         title: article.title,
