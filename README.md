@@ -30,12 +30,12 @@ AI-powered article generation system that automatically processes RSS feeds from
 
 2. **Install dependencies**
    ```bash
-   pnpm install
+   npm install
    ```
 
 3. **Build the project**
    ```bash
-   pnpm build
+   npm run build --workspaces
    ```
 
 ## ⚙️ Configuration
@@ -104,24 +104,24 @@ SITE_NAME=AI Culture News
 
 ```bash
 # Start the worker in development mode
-pnpm dev:worker
+npm run dev:worker
 
 # Run tests
-pnpm test
+npm run test --workspaces
 
 # Lint code
-pnpm lint
+npm run lint --workspaces
 
 # Format code
-pnpm format
+npm run format --workspaces
 ```
 
 ### Production Mode
 
 ```bash
 # Build and start the worker
-pnpm build
-pnpm start:worker
+npm run build --workspaces
+npm run start:worker
 ```
 
 ### Manual Execution
@@ -218,30 +218,30 @@ ai-pop-culture-news/
 
 ```bash
 # Run all tests
-pnpm test
+npm run test --workspaces
 
 # Run tests with coverage
-pnpm test --coverage
+npm run test --workspaces -- --coverage
 
 # Run specific test file
-pnpm test src/modules/ingest.test.ts
+npm run test --workspace=@ai-pop-culture-news/worker -- src/modules/ingest.test.ts
 ```
 
 ### Integration Tests
 
 ```bash
 # Test WordPress API connection
-pnpm test:integration
+npm run test:integration --workspace=@ai-pop-culture-news/worker
 
 # Test with staging environment
-NODE_ENV=staging pnpm test:integration
+NODE_ENV=staging npm run test:integration --workspace=@ai-pop-culture-news/worker
 ```
 
 ### End-to-End Testing
 
 ```bash
 # Full pipeline test with dummy data
-pnpm test:e2e
+npm run test:e2e --workspace=@ai-pop-culture-news/worker
 ```
 
 ## 🚀 Deployment
@@ -267,7 +267,7 @@ push:
 
 1. **Build the project**
    ```bash
-   pnpm build
+   npm run build --workspaces
    ```
 
 2. **Set environment variables**
@@ -279,7 +279,7 @@ push:
 
 3. **Run the worker**
    ```bash
-   pnpm start:worker
+   npm run start:worker
    ```
 
 ## 📈 Monitoring
@@ -336,7 +336,7 @@ push:
 ```bash
 # Reset database
 rm data.db
-pnpm start:worker  # Will recreate schema
+npm run start:worker  # Will recreate schema
 
 # Check database integrity
 sqlite3 data.db "PRAGMA integrity_check;"
@@ -371,7 +371,7 @@ top -p $(pgrep -f "node.*worker")
 3. **Set to draft mode**
    ```bash
    export PUBLISH_MODE=draft
-   pnpm start:worker
+   npm run start:worker
    ```
 
 ### Database Rollback
@@ -382,7 +382,7 @@ cp data.db.backup data.db
 
 # Or reset to clean state
 rm data.db
-pnpm start:worker
+npm run start:worker
 ```
 
 ## 📝 Editorial Policy

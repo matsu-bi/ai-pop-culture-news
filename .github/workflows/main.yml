@@ -35,47 +35,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: Check if app directory exists
-        id: check_app
-        run: |
-          if [ -d "app" ]; then
-            echo "app_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "app_exists=false" >> $GITHUB_OUTPUT
-          fi
+      - name: Install dependencies
+        run: npm install
 
-      - name: Install pnpm (for monorepo)
-        if: steps.check_app.outputs.app_exists == 'false'
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
+      - name: Lint code
+        run: npm run lint --workspaces
 
-      - name: Install dependencies (monorepo)
-        if: steps.check_app.outputs.app_exists == 'false'
-        run: pnpm install
-
-      - name: Install dependencies (MVP app)
-        if: steps.check_app.outputs.app_exists == 'true'
-        run: cd app && npm install
-
-      - name: Lint code (monorepo)
-        if: steps.check_app.outputs.app_exists == 'false'
-        run: pnpm lint
-
-      - name: Run tests (monorepo)
-        if: steps.check_app.outputs.app_exists == 'false'
-        run: pnpm test
+      - name: Run tests
+        run: npm run test --workspaces
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ai_pop_culture_test
 
-      - name: Build project (monorepo)
-        if: steps.check_app.outputs.app_exists == 'false'
-        run: pnpm build
-
-      - name: Build project (MVP app)
-        if: steps.check_app.outputs.app_exists == 'true'
-        run: cd app && npm run build
+      - name: Build project
+        run: npm run build --workspaces
 
   deploy:
     needs: test
@@ -104,21 +78,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
+          cache: 'npm'
 
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
 
       - name: Build project
-        run: pnpm build
+        run: npm run build --workspaces
 
       - name: Run AI Article Pipeline
-        run: pnpm start:worker
+        run: npm run start:worker
         env:
           WP_URL: ${{ secrets.WP_URL }}
           WP_USERNAME: ${{ secrets.WP_USERNAME }}

@@ -320,17 +320,17 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '20'
-      - run: pnpm install
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
+      - run: npm install
+      - run: npm run lint --workspaces
+      - run: npm run test --workspaces
+      - run: npm run build --workspaces
 
   deploy:
     needs: test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - run: pnpm start:production
+      - run: npm run start:worker
 ```
 
 ## Security Considerations

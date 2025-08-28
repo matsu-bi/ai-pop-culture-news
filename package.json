@@ -9,13 +9,13 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm -r build",
-    "dev": "pnpm -r dev",
-    "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
-    "format": "pnpm -r format",
-    "start:worker": "pnpm --filter @ai-pop-culture-news/worker start",
-    "dev:worker": "pnpm --filter @ai-pop-culture-news/worker dev"
+    "build": "npm run build --workspaces",
+    "dev": "npm run dev --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "format": "npm run format --workspaces",
+    "start:worker": "npm run start --workspace=@ai-pop-culture-news/worker",
+    "dev:worker": "npm run dev --workspace=@ai-pop-culture-news/worker"
   },
   "keywords": [
     "ai",
@@ -26,7 +26,6 @@
   ],
   "author": "AI Culture News Team",
   "license": "ISC",
-  "packageManager": "pnpm@10.15.0",
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
