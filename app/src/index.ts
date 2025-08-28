@@ -157,56 +157,21 @@ class RSSToHTMLGenerator {
 }`;
 
     try {
-      let response;
-      try {
-        console.log(`   🤖 Attempting JSON mode with ${this.model}...`);
-        response = await this.openai.chat.completions.create({
-          model: this.model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.3,
-          max_tokens: 1000,
-          response_format: { type: "json_object" }
-        });
-      } catch (jsonError) {
-        console.log(`   ⚠️  JSON mode not supported, falling back to regular mode...`);
-        response = await this.openai.chat.completions.create({
-          model: this.model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.3,
-          max_tokens: 1000
-        });
-      }
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1000
+      });
 
       const result = response.choices[0]?.message?.content;
       if (!result) {
-        throw new Error('No response from local model');
+        throw new Error('No response from OpenAI');
       }
 
       console.log(`   🤖 Generated summary (${result.length} chars)`);
 
-      let parsed;
-      try {
-        parsed = JSON.parse(result);
-      } catch (parseError) {
-        console.log(`   ⚠️  Direct JSON parse failed, extracting JSON block...`);
-        const jsonMatch = result.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}(?=[^{}]*$)/);
-        if (jsonMatch) {
-          try {
-            parsed = JSON.parse(jsonMatch[0]);
-          } catch (extractError) {
-            throw new Error(`Failed to parse JSON from response: ${result.substring(0, 200)}...`);
-          }
-        } else {
-          throw new Error(`No JSON block found in response: ${result.substring(0, 200)}...`);
-        }
-      }
-
-      if (!parsed.lead_ja || typeof parsed.lead_ja !== 'string') {
-        throw new Error('Missing or invalid lead_ja field in response');
-      }
-      if (!parsed.facts || !Array.isArray(parsed.facts) || parsed.facts.length === 0) {
-        throw new Error('Missing or invalid facts field in response');
-      }
+      const parsed = JSON.parse(result);
 
       return {
         title: article.title,
