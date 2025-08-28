@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ValidateModule } from '../../modules/validate.js';
 import type { GeneratedContent } from '@ai-pop-culture-news/shared';
-import type { ParsedContent } from '../../modules/parse.js';
 
 describe('ValidateModule', () => {
   let validateModule: ValidateModule;

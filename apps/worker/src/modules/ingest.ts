@@ -60,7 +60,7 @@ export class IngestModule {
     return crypto.createHash('sha256').update(url).digest('hex');
   }
 
-  private async isDuplicate(urlHash: string, title: string): Promise<boolean> {
+  private async isDuplicate(urlHash: string, _title: string): Promise<boolean> {
     const existing = await db.get(
       'SELECT 1 FROM url_hashes WHERE url_hash = $1',
       [urlHash]

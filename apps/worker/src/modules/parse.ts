@@ -74,7 +74,7 @@ export class ParseModule {
     }
   }
 
-  private extractPublishedTime(document: Document): string | undefined {
+  private extractPublishedTime(document: any): string | undefined {
     const selectors = [
       'meta[property="article:published_time"]',
       'meta[name="article:published_time"]',
@@ -107,7 +107,7 @@ export class ParseModule {
     return undefined;
   }
 
-  private extractSiteName(document: Document, url: string): string {
+  private extractSiteName(document: any, url: string): string {
     const siteNameMeta = document.querySelector('meta[property="og:site_name"]') ||
                         document.querySelector('meta[name="application-name"]');
     

@@ -119,7 +119,7 @@ ${parsedContent.textContent.substring(0, 4000)}
 `;
   }
 
-  private parseGeneratedContent(content: string, parsedContent: ParsedContent, sourceUrl: string): GeneratedContent | null {
+  private parseGeneratedContent(content: string, _parsedContent: ParsedContent, _sourceUrl: string): GeneratedContent | null {
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {

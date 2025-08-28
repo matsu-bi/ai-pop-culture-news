@@ -1,4 +1,4 @@
-import { createCanvas, loadImage, registerFont } from 'canvas';
+import { createCanvas } from 'canvas';
 import sharp from 'sharp';
 import type { GeneratedContent } from '@ai-pop-culture-news/shared';
 
