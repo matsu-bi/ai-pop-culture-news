@@ -41,7 +41,7 @@ jobs:
         run: npm install
 
       - name: Build project
-        run: npm run build --workspaces
+        run: npm run build
 
       - name: Lint code
         run: npm run lint --workspaces
@@ -84,7 +84,7 @@ jobs:
         run: npm install
 
       - name: Build project
-        run: npm run build --workspaces
+        run: npm run build
 
       - name: Run AI Article Pipeline
         run: npm run start:worker
