@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Build project
+        run: npm run build --workspaces
+
       - name: Lint code
         run: npm run lint --workspaces
 
@@ -47,9 +50,6 @@ jobs:
         run: npm run test --workspaces
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ai_pop_culture_test
-
-      - name: Build project
-        run: npm run build --workspaces
 
   deploy:
     needs: test
