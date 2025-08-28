@@ -1,10 +1,6 @@
 {
   "compilerOptions": {
     // File Layout
-    "baseUrl": ".",
-    "paths": {
-      "@shared/*": ["packages/shared/src/*"]
-    },
 
     // Environment Settings
     "module": "nodenext",
