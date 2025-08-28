@@ -23,15 +23,15 @@ class RSSToHTMLGenerator {
 
   constructor() {
     this.baseURL = process.env.BASE_URL || "http://localhost:11434/v1";
-    this.model = process.env.MODEL || "llama3.1:8b";
-    
-    this.openai = new OpenAI({ 
-      apiKey: "local-only", 
-      baseURL: this.baseURL 
+    this.model = process.env.MODEL || "qwen2.5:14b-instruct";
+
+    this.openai = new OpenAI({
+      apiKey: "local-only",
+      baseURL: this.baseURL
     });
     this.parser = new Parser();
     this.feedUrl = process.env.FEED_URL || 'https://techcrunch.com/category/artificial-intelligence/feed/';
-    
+
     console.log(`🚀 Starting RSS to HTML generator`);
     console.log(`📡 Feed URL: ${this.feedUrl}`);
     console.log(`🤖 Using local model: ${this.model} @ ${this.baseURL}`);
@@ -41,19 +41,19 @@ class RSSToHTMLGenerator {
     try {
       console.log('\n🔍 Step 0: Checking Ollama connection...');
       await this.checkOllamaHealth();
-      
+
       console.log('\n📥 Step 1: Fetching RSS feed...');
       const latestArticle = await this.fetchLatestArticle();
-      
+
       console.log('\n📖 Step 2: Extracting article content...');
       const content = await this.extractContent(latestArticle.link);
-      
+
       console.log('\n🤖 Step 3: Generating Japanese summary...');
       const summary = await this.generateSummary(latestArticle, content);
-      
+
       console.log('\n💾 Step 4: Saving to HTML file...');
       await this.saveToHTML(summary);
-      
+
       console.log('\n✅ Complete! Check ./out/latest.html');
     } catch (error) {
       console.error('\n❌ Error:', error instanceof Error ? error.message : error);
@@ -65,26 +65,26 @@ class RSSToHTMLGenerator {
     try {
       const fetch = (await import('node-fetch')).default;
       const modelsUrl = `${this.baseURL.replace('/v1', '')}/api/tags`;
-      
+
       console.log(`   🔗 Checking connection to ${this.baseURL}...`);
       const response = await fetch(modelsUrl);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json() as { models: Array<{ name: string }> };
       const availableModels = data.models?.map(m => m.name) || [];
-      
+
       console.log(`   ✅ Connected to Ollama (${availableModels.length} models available)`);
-      
+
       if (!availableModels.some(name => name.startsWith(this.model.split(':')[0]))) {
         console.error(`\n❌ Model "${this.model}" is not available.`);
         console.error(`Available models: ${availableModels.join(', ')}`);
         console.error(`\n💡 To install the model, run: ollama pull ${this.model}`);
         process.exit(1);
       }
-      
+
       console.log(`   ✅ Model "${this.model}" is available`);
     } catch (error) {
       if (error instanceof Error && (error.message.includes('ECONNREFUSED') || error.message.includes('failed, reason:'))) {
@@ -99,7 +99,7 @@ class RSSToHTMLGenerator {
   private async fetchLatestArticle(): Promise<any> {
     try {
       const feed = await this.parser.parseURL(this.feedUrl);
-      
+
       if (!feed.items || feed.items.length === 0) {
         throw new Error('No articles found in RSS feed');
       }
@@ -107,7 +107,7 @@ class RSSToHTMLGenerator {
       const latest = feed.items[0];
       console.log(`   📰 Found: "${latest.title}"`);
       console.log(`   🔗 URL: ${latest.link}`);
-      
+
       return latest;
     } catch (error) {
       throw new Error(`Failed to fetch RSS feed: ${error instanceof Error ? error.message : error}`);
@@ -118,7 +118,7 @@ class RSSToHTMLGenerator {
     try {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -183,7 +183,7 @@ class RSSToHTMLGenerator {
       }
 
       console.log(`   🤖 Generated summary (${result.length} chars)`);
-      
+
       let parsed;
       try {
         parsed = JSON.parse(result);
@@ -200,14 +200,14 @@ class RSSToHTMLGenerator {
           throw new Error(`No JSON block found in response: ${result.substring(0, 200)}...`);
         }
       }
-      
+
       if (!parsed.lead_ja || typeof parsed.lead_ja !== 'string') {
         throw new Error('Missing or invalid lead_ja field in response');
       }
       if (!parsed.facts || !Array.isArray(parsed.facts) || parsed.facts.length === 0) {
         throw new Error('Missing or invalid facts field in response');
       }
-      
+
       return {
         title: article.title,
         lead_ja: parsed.lead_ja,
@@ -248,10 +248,10 @@ ${summary.facts.map(fact => `  <li>${this.escapeHtml(fact)}</li>`).join('\n')}
 
     const outDir = path.join(process.cwd(), 'out');
     await fs.mkdir(outDir, { recursive: true });
-    
+
     const filePath = path.join(outDir, 'latest.html');
     await fs.writeFile(filePath, template, 'utf-8');
-    
+
     console.log(`   💾 Saved to: ${filePath}`);
   }
 
