@@ -87,7 +87,7 @@ class RSSToHTMLGenerator {
       
       console.log(`   ✅ Model "${this.model}" is available`);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
+      if (error instanceof Error && (error.message.includes('ECONNREFUSED') || error.message.includes('failed, reason:'))) {
         console.error(`\n❌ Cannot connect to Ollama server at ${this.baseURL}`);
         console.error(`💡 Make sure Ollama is running: ollama serve`);
         process.exit(1);
