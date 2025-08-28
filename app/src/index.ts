@@ -4,6 +4,7 @@ import { Readability } from '@mozilla/readability';
 import OpenAI from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
+import 'dotenv/config';
 
 interface ArticleSummary {
   title: string;
@@ -28,7 +29,7 @@ class RSSToHTMLGenerator {
     this.openai = new OpenAI({ apiKey });
     this.parser = new Parser();
     this.feedUrl = process.env.FEED_URL || 'https://techcrunch.com/category/artificial-intelligence/feed/';
-    
+
     console.log(`🚀 Starting RSS to HTML generator`);
     console.log(`📡 Feed URL: ${this.feedUrl}`);
   }
@@ -37,16 +38,16 @@ class RSSToHTMLGenerator {
     try {
       console.log('\n📥 Step 1: Fetching RSS feed...');
       const latestArticle = await this.fetchLatestArticle();
-      
+
       console.log('\n📖 Step 2: Extracting article content...');
       const content = await this.extractContent(latestArticle.link);
-      
+
       console.log('\n🤖 Step 3: Generating Japanese summary...');
       const summary = await this.generateSummary(latestArticle, content);
-      
+
       console.log('\n💾 Step 4: Saving to HTML file...');
       await this.saveToHTML(summary);
-      
+
       console.log('\n✅ Complete! Check ./out/latest.html');
     } catch (error) {
       console.error('\n❌ Error:', error instanceof Error ? error.message : error);
@@ -57,7 +58,7 @@ class RSSToHTMLGenerator {
   private async fetchLatestArticle(): Promise<any> {
     try {
       const feed = await this.parser.parseURL(this.feedUrl);
-      
+
       if (!feed.items || feed.items.length === 0) {
         throw new Error('No articles found in RSS feed');
       }
@@ -65,7 +66,7 @@ class RSSToHTMLGenerator {
       const latest = feed.items[0];
       console.log(`   📰 Found: "${latest.title}"`);
       console.log(`   🔗 URL: ${latest.link}`);
-      
+
       return latest;
     } catch (error) {
       throw new Error(`Failed to fetch RSS feed: ${error instanceof Error ? error.message : error}`);
@@ -76,7 +77,7 @@ class RSSToHTMLGenerator {
     try {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -100,47 +101,69 @@ class RSSToHTMLGenerator {
   }
 
   private async generateSummary(article: any, content: string): Promise<ArticleSummary> {
-    const prompt = `あなたは日本語編集者です。以下の英語記事を基に、日本語で要約を作成してください。
+    const system = `あなたは日本語編集者です。直訳せず、ライトユーザー向けに簡潔で分かりやすく書きます。固有名詞・日付・数値は原文に一致させ、主観や誇張はしないでください。JSONだけを出力してください。`;
+
+    const user = `以下の英語記事を基に日本語で要約してください。
 
 記事タイトル: ${article.title}
 記事本文: ${content || '本文抽出に失敗したため、タイトルのみで要約してください。'}
 
-以下の形式でJSONを返してください：
-- lead_ja: 2〜3文（最大200字）。直訳せず、ライトユーザー向けに簡潔に要約。敬体で。
-- facts: 5〜7項目の箇条書き。固有名詞/日付/数値は原文準拠。主観・誇張禁止。
-
+出力形式（JSONのみ）:
 {
-  "lead_ja": "...",
-  "facts": ["...", "...", "..."]
+  "lead_ja": "2〜3文（最大200字）、敬体で要約",
+  "facts": ["項目1", "項目2", "項目3", "項目4", "項目5"]
 }`;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 1000
+      // モデルは .env の MODEL を優先。なければ gpt-4o-mini をデフォルト。
+      const model = process.env.MODEL || 'gpt-4o-mini';
+
+      const resp = await this.openai.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ],
+        temperature: 0.2,
+        max_tokens: 600,
+        // JSONを強制
+        response_format: { type: 'json_object' }
       });
 
-      const result = response.choices[0]?.message?.content;
-      if (!result) {
-        throw new Error('No response from OpenAI');
+      const contentStr = resp.choices[0]?.message?.content?.trim();
+      if (!contentStr) throw new Error('Empty response from model');
+
+      let parsed: { lead_ja: string; facts: string[] };
+      try {
+        parsed = JSON.parse(contentStr);
+      } catch {
+        // 念のためのフォールバック（JSONでない場合）
+        const safe = contentStr.match(/\{[\s\S]*\}$/)?.[0] || '{}';
+        parsed = JSON.parse(safe);
       }
 
-      console.log(`   🤖 Generated summary (${result.length} chars)`);
-      
-      const parsed = JSON.parse(result);
-      
+      if (!parsed.lead_ja || !Array.isArray(parsed.facts)) {
+        throw new Error('Invalid JSON schema from model');
+      }
+
       return {
         title: article.title,
         lead_ja: parsed.lead_ja,
-        facts: parsed.facts,
+        facts: parsed.facts.slice(0, 7),
         source_name: 'TechCrunch',
         source_url: article.link,
-        published_date: article.pubDate ? new Date(article.pubDate).toLocaleDateString('ja-JP') : '不明'
+        published_date: article.pubDate
+          ? new Date(article.pubDate).toLocaleDateString('ja-JP')
+          : '不明'
       };
-    } catch (error) {
-      throw new Error(`Failed to generate summary: ${error instanceof Error ? error.message : error}`);
+    } catch (err: any) {
+      // モデル404/権限エラー時のガイド
+      if (typeof err.message === 'string' && /model .* does not exist|404/i.test(err.message)) {
+        throw new Error(
+          `Failed to generate summary: ${err.message}. 別モデルを指定してください（例: MODEL=gpt-4o-mini）。`
+        );
+      }
+      throw new Error(`Failed to generate summary: ${err.message || err}`);
     }
   }
 
@@ -171,10 +194,10 @@ ${summary.facts.map(fact => `  <li>${this.escapeHtml(fact)}</li>`).join('\n')}
 
     const outDir = path.join(process.cwd(), 'out');
     await fs.mkdir(outDir, { recursive: true });
-    
+
     const filePath = path.join(outDir, 'latest.html');
     await fs.writeFile(filePath, template, 'utf-8');
-    
+
     console.log(`   💾 Saved to: ${filePath}`);
   }
 

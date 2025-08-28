@@ -6,6 +6,9 @@ venv/
 dist/
 build/
 
+# Outputs
+app/out
+
 # Logs
 *.log
 npm-debug.log*
@@ -60,6 +63,9 @@ jspm_packages/
 
 # nuxt.js build output
 .nuxt
+
+# other build outputs
+*.tsbuildinfo
 
 # vuepress build output
 .vuepress/dist
